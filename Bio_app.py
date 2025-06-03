@@ -14,10 +14,15 @@ import joblib
 # 1. Initialize Earth Engine with service account
 # -----------------------------------------------
 # Convert secrets into credentials
-service_account_info = st.secrets["GEE"]
+#service_account_info = st.secrets["GEE"]
+
+# Convert dict to JSON string
+key_data = json.dumps(st.secrets["GEE"])
+
+# Authenticate with Earth Engine
 credentials = ee.ServiceAccountCredentials(
-    service_account_info["client_email"], 
-    key_data = st.secrets["GEE"]
+    st.secrets["GEE"]["client_email"],  # Access the client_email from the dict
+    key_data
 )
 
 ee.Initialize(credentials)
