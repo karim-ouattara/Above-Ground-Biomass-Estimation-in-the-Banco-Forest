@@ -133,9 +133,9 @@ if geometry is not None:
     k =0
     for i,c in enumerate(tqdm(ivoire_cordinate,total=len(ivoire_cordinate))):
         lat = c[1]
-  	lon = c[0]
-  	point = Point([lon,lat])
-  	if polygon.contains(point):
+        lon = c[0]
+        point = Point([lon,lat])
+        if polygon.contains(point):
   	    id = "zone_"+str(k)
   	    bio = -1
   	    ids.append(id)
