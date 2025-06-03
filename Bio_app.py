@@ -435,7 +435,7 @@ if pred_data_fc:
     st.subheader("3️⃣ Predicting AGBD")
 
     try:
-	loaded_model = joblib..load("agbd_model.sav")
+	loaded_model = joblib.load("agbd_model_bench.joblib")
 	bands_used_in_training = loaded_model.feature_names_in_
         df = df[bands_used_in_training]  # ensure columns match
         biomass = loaded_model.predict(pred_data)
