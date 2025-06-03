@@ -128,12 +128,12 @@ if geometry is not None:
     lons = []
     k =0
     for i, c in enumerate(tqdm(ivoire_cordinate, total=len(ivoire_cordinate))):
-	lat = c[1]
+    lat = c[1]
         lon = c[0]
         lats.append(lat)
         lons.append(lon)
         k = k + 1
-		
+        
     prediction_data = pd.DataFrame({"Latitude":lats,
                       "Longitude":lons})
 
@@ -148,10 +148,10 @@ if geometry is not None:
     features = []
     for _, row in gdf.iterrows():
         geojson = row['geometry'].__geo_interface__
-    	geom = ee.Geometry(geojson)
-    	props = row.drop('geometry').to_dict()
-    	feature = ee.Feature(geom, props)
-    	features.append(feature)
+        geom = ee.Geometry(geojson)
+        props = row.drop('geometry').to_dict()
+        feature = ee.Feature(geom, props)
+        features.append(feature)
 
     pred_data_fc = ee.FeatureCollection(features)
     st.success("🌍 AOI is ready for processing.")
@@ -165,20 +165,20 @@ if pred_data_fc:
     # Create a function to mask clouds using the Sentinel-2 QA band.
     def maskS2clouds(image):
         qa = image.select('QA60')
-    	# Bits 10 and 11 are clouds and cirrus, respectively.
-    	cloudBitMask = ee.Number(2).pow(10).int()
-    	cirrusBitMask = ee.Number(2).pow(11).int()
-    	# Both flags should be set to zero, indicating clear conditions.
-    	mask = qa.bitwiseAnd(cloudBitMask).eq(0).And(
+        # Bits 10 and 11 are clouds and cirrus, respectively.
+        cloudBitMask = ee.Number(2).pow(10).int()
+        cirrusBitMask = ee.Number(2).pow(11).int()
+        # Both flags should be set to zero, indicating clear conditions.
+        mask = qa.bitwiseAnd(cloudBitMask).eq(0).And(
         qa.bitwiseAnd(cirrusBitMask).eq(0))
-    	# Return the masked and scaled data.
-    	return image.updateMask(mask).divide(10000)
+        # Return the masked and scaled data.
+        return image.updateMask(mask).divide(10000)
 
     def maskLowQA(img):
-	qaBand = 'cs_cdf'
-  	clearThreshold = 0.6
-  	mask = img.select(qaBand).gte(clearThreshold)
-  	return img.updateMask(mask)
+    qaBand = 'cs_cdf'
+    clearThreshold = 0.6
+    mask = img.select(qaBand).gte(clearThreshold)
+    return img.updateMask(mask)
 
     # Create a single composite image for a given period.
     start_date = '2023-01-01'
@@ -186,18 +186,18 @@ if pred_data_fc:
 
 
     def processing_s2_images(start_date, end_date, aoi):
-	image_coll = ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED").filterDate(start_date, end_date).filterBounds(aoi)\
-  				.filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20)) \
-    				.map(maskS2clouds) \
-   				.select(['B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B11', 'B12'])
+    image_coll = ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED").filterDate(start_date, end_date).filterBounds(aoi)\
+                .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20)) \
+                    .map(maskS2clouds) \
+                .select(['B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B11', 'B12'])
 
-  	proj = ee.Image(image_coll.first()).select('B4').projection()
-  	csPlus = ee.ImageCollection('GOOGLE/CLOUD_SCORE_PLUS/V1/S2_HARMONIZED')
-  	csPlusBands = csPlus.first().bandNames()
-  	filteredS2WithCs = image_coll.linkCollection(csPlus,csPlusBands)
-  	s2Processed = filteredS2WithCs.map(maskLowQA).map(lambda image: image.clip(aoi))
-  	composite = s2Processed.median().setDefaultProjection(proj)
-  	return composite
+    proj = ee.Image(image_coll.first()).select('B4').projection()
+    csPlus = ee.ImageCollection('GOOGLE/CLOUD_SCORE_PLUS/V1/S2_HARMONIZED')
+    csPlusBands = csPlus.first().bandNames()
+    filteredS2WithCs = image_coll.linkCollection(csPlus,csPlusBands)
+    s2Processed = filteredS2WithCs.map(maskLowQA).map(lambda image: image.clip(aoi))
+    composite = s2Processed.median().setDefaultProjection(proj)
+    return composite
 
     # Compute the median composite and clip to the boundary.
     S2_composite = processing_s2_images(start_date, end_date, aoi_fc)
@@ -210,7 +210,7 @@ if pred_data_fc:
 
     # EVI (Enhanced Vegetation Index)
     evi = S2_composite.expression(
-    	'G * ((NIR - RED) / (NIR + C1 * RED - C2 * BLUE + L))', {
+        'G * ((NIR - RED) / (NIR + C1 * RED - C2 * BLUE + L))', {
         'NIR': S2_composite.select('B8'),
         'RED': S2_composite.select('B4'),
         'BLUE': S2_composite.select('B2'),
@@ -218,66 +218,66 @@ if pred_data_fc:
         'C1': 6,
         'C2': 7.5,
         'L': 1  # Canopy background adjustment
-    	}).rename('EVI')
+        }).rename('EVI')
 
     # NDRE (Normalized Difference Red Edge Index)
     ndre = S2_composite.normalizedDifference(['B8', 'B5']).rename('NDRE')
 
     # 4. RVI (Ratio Vegetation Index)
     rvi = S2_composite.expression(
-    	'NIR / RED', {
+        'NIR / RED', {
         'NIR': S2_composite.select('B8'),
         'RED': S2_composite.select('B4')
-    	}).rename('RVI')
+        }).rename('RVI')
 
     # GNDVI (Green Normalized Difference Vegetation Index)
     gndvi = S2_composite.normalizedDifference(['B8', 'B3']).rename('GNDVI')
 
     # SAVI (Soil Adjusted Vegetation Index)
-	L = 0.5  # Soil adjustment factor, typically between 0 and 1
-	savi = S2_composite.expression(
-    	'((NIR - Red) / (NIR + Red + L)) * (1 + L)', {
+    L = 0.5  # Soil adjustment factor, typically between 0 and 1
+    savi = S2_composite.expression(
+        '((NIR - Red) / (NIR + Red + L)) * (1 + L)', {
         'NIR': S2_composite.select('B8'),
         'Red': S2_composite.select('B4'),
         'L': L
-    	}).rename('SAVI')
+        }).rename('SAVI')
 
     # MSAVI (Modified Soil Adjusted Vegetation Index)
     msavi = S2_composite.expression(
-    	'(2 * NIR + 1 - sqrt((2 * NIR + 1) ** 2 - 8 * (NIR - RED))) / 2', {
+        '(2 * NIR + 1 - sqrt((2 * NIR + 1) ** 2 - 8 * (NIR - RED))) / 2', {
         'NIR': S2_composite.select('B8'),
         'RED': S2_composite.select('B4')
-    	}).rename('MSAVI')
+        }).rename('MSAVI')
 
     # WDRVI (Wide Dynamic Range Vegetation Index)
     wdrvi = S2_composite.expression(
-    	'a * ((NIR - RED) / (NIR + RED))', {
+        'a * ((NIR - RED) / (NIR + RED))', {
         'NIR': S2_composite.select('B8'),
         'RED': S2_composite.select('B4'),
         'a': 0.2  # Weighting coefficient for dense vegetation
-    	}).rename('WDRVI')
+        }).rename('WDRVI')
 
     # CIred-edge (Red Edge Chlorophyll Index)
     ciredge = S2_composite.expression(
-    	'(NIR / RedEdge) - 1', {
+        '(NIR / RedEdge) - 1', {
         'NIR': S2_composite.select('B8'),
         'RedEdge': S2_composite.select('B5')
-    	}).rename('CIred_edge')
+        }).rename('CIred_edge')
 
     # CCCI (Canopy Chlorophyll Content Index)
     ccci = S2_composite.expression(
-    	'NDRE / NDVI', {
+        'NDRE / NDVI', {
         'NDRE': ndre,
         'NDVI': ndvi
-    	}).rename('CCCI')
+        }).rename('CCCI')
 
     # RESI (Red Edge Simple Ratio Index)
     resi = S2_composite.expression(
-    	'((RE3 + RE2 - RE1) / (RE3 + RE2 + RE1))', {
+        '((RE3 + RE2 - RE1) / (RE3 + RE2 + RE1))', {
         'RE1': S2_composite.select('B5'),
         'RE2': S2_composite.select('B6'),
         'RE3': S2_composite.select('B7')
-    	}).rename('RESI')
+        }).rename('RESI')
 
 
     
@@ -288,10 +288,10 @@ if pred_data_fc:
     # Load SRTM DEM
     srtm = ee.Image("USGS/SRTMGL1_003")
 
-	#srtm_resampled = srtm.resample('bilinear').reproject({
-	#  'crs': srtm.projection(),
-	#  'scale': 10 })
-	#print('Resampled Resolution:', resampled.projection().nominalScale())
+    #srtm_resampled = srtm.resample('bilinear').reproject({
+    #  'crs': srtm.projection(),
+    #  'scale': 10 })
+    #print('Resampled Resolution:', resampled.projection().nominalScale())
 
     # Clip Elevation to the boundary
     elevation = srtm.clip(tai_forest_boundary)
@@ -302,11 +302,11 @@ if pred_data_fc:
 
     # Load Sentinel-1 data
     s1 = ee.ImageCollection('COPERNICUS/S1_GRD') \
-    	.filterDate(start_date, end_date) \
-    	.filter(ee.Filter.listContains('transmitterReceiverPolarisation', 'VV')) \
-    	.filter(ee.Filter.listContains('transmitterReceiverPolarisation', 'VH')) \
-    	.filter(ee.Filter.eq('instrumentMode', 'IW')) \
-    	.filterBounds(tai_forest_boundary)
+        .filterDate(start_date, end_date) \
+        .filter(ee.Filter.listContains('transmitterReceiverPolarisation', 'VV')) \
+        .filter(ee.Filter.listContains('transmitterReceiverPolarisation', 'VH')) \
+        .filter(ee.Filter.eq('instrumentMode', 'IW')) \
+        .filterBounds(tai_forest_boundary)
 
     # Create a median composite for VV and VH
     vv = s1.filter(ee.Filter.eq('orbitProperties_pass', 'ASCENDING')).select('VV').median().clip(tai_forest_boundary)
@@ -331,27 +331,27 @@ if pred_data_fc:
 
     # Merge the predictor variables
     merged_dataset = (
-    	S2_composite
-    	.addBands(ndvi)
-    	.addBands(evi)
-    	.addBands(ndre)
-    	.addBands(rvi)
-    	.addBands(gndvi)
-    	.addBands(savi)
-    	.addBands(msavi)
-    	.addBands(wdrvi)
-    	.addBands(ciredge)
-    	.addBands(ccci)
-    	.addBands(resi)
-    	.addBands(elevation)
-    	.addBands(slope)
-    	.addBands(vv.rename('VV'))
-    	.addBands(vh.rename('VH'))
-    	.addBands(sarhh.rename('HH'))
-    	.addBands(sarhv.rename('HV'))
-    	.addBands(vv_vh_ratio.rename('VV_VH_ratio'))
-    	.addBands(hh_hv_ratio.rename('HH_HV_ratio'))
-    	)
+        S2_composite
+        .addBands(ndvi)
+        .addBands(evi)
+        .addBands(ndre)
+        .addBands(rvi)
+        .addBands(gndvi)
+        .addBands(savi)
+        .addBands(msavi)
+        .addBands(wdrvi)
+        .addBands(ciredge)
+        .addBands(ccci)
+        .addBands(resi)
+        .addBands(elevation)
+        .addBands(slope)
+        .addBands(vv.rename('VV'))
+        .addBands(vh.rename('VH'))
+        .addBands(sarhh.rename('HH'))
+        .addBands(sarhv.rename('HV'))
+        .addBands(vv_vh_ratio.rename('VV_VH_ratio'))
+        .addBands(hh_hv_ratio.rename('HH_HV_ratio'))
+        )
 
     # Clip the output image to the farm boundary
     clippedmergedCollection = merged_dataset.clipToCollection(tai_forest_boundary)
@@ -369,11 +369,11 @@ if pred_data_fc:
 
     # Reduce each polygon in pred_data_fc over the clipped composite
     prediction_features = clippedmergedCollection.select(bands).reduceRegions(**{
-    	'collection': ee.FeatureCollection(pred_data_fc),
-    	'reducer': ee.Reducer.mean(),
-    	'scale': 10,
-    	'tileScale': 4  # Optional: improves performance for large regions
-	})
+        'collection': ee.FeatureCollection(pred_data_fc),
+        'reducer': ee.Reducer.mean(),
+        'scale': 10,
+        'tileScale': 4  # Optional: improves performance for large regions
+    })
 
 
     # Convert to client-side dictionary
@@ -386,9 +386,9 @@ if pred_data_fc:
     data = []
     for f in features_list:
         props = f['properties']
-    	geom = f['geometry']
-    	props['geometry'] = geom  # optional
-    	data.append(props)
+        geom = f['geometry']
+        props['geometry'] = geom  # optional
+        data.append(props)
 
     df_pred = pd.DataFrame(data)
     # Drop the first ('Biomass') and last ('geometry' columns
@@ -421,20 +421,20 @@ if pred_data_fc:
     st.subheader("3️⃣ Predicting AGBD")
 
     try:
-	loaded_model = joblib.load("agbd_model_bench.joblib")
-	bands_used_in_training = loaded_model.feature_names_in_
+    loaded_model = joblib.load("agbd_model_bench.joblib")
+    bands_used_in_training = loaded_model.feature_names_in_
         df = df[bands_used_in_training]  # ensure columns match
         biomass = loaded_model.predict(pred_data)
-	biomass_df = pd.DataFrame(biomass, columns=["Biomass"])
-	biomass_df["Biomass"] = biomass_df["Biomass"].astype(int)
-	biomass_df['Biomass'] = biomass_df['Biomass'].apply(lambda x: max(x, 0))
+    biomass_df = pd.DataFrame(biomass, columns=["Biomass"])
+    biomass_df["Biomass"] = biomass_df["Biomass"].astype(int)
+    biomass_df['Biomass'] = biomass_df['Biomass'].apply(lambda x: max(x, 0))
 
-	# Compute Carbon
-	biomass_df["Carbon"] = (biomass_df["Biomass"] * 0.47).astype(int)
-	    
-	# Combine with coordinates
-	coord = pred_data[['latitude', 'longitude']].reset_index(drop=True)
-	predictions = pd.concat([coord, biomass_df], axis=1)
+    # Compute Carbon
+    biomass_df["Carbon"] = (biomass_df["Biomass"] * 0.47).astype(int)
+        
+    # Combine with coordinates
+    coord = pred_data[['latitude', 'longitude']].reset_index(drop=True)
+    predictions = pd.concat([coord, biomass_df], axis=1)
         
         #if 'longitude' in predictions.columns and 'latitude' in predictions.columns:
         #    st.map(predictions[['latitude', 'longitude']])
@@ -442,47 +442,46 @@ if pred_data_fc:
         # ✅ Download option
         st.download_button("📥 Download predictions", predictions.to_csv(index=False), file_name="AGBD_predictions.csv")
 
-	# ✅ Convert to GeoDataFrame
-	geometry = [Point(xy) for xy in zip(predictions['longitude'], predictions['latitude'])]
-	geo_df = gpd.GeoDataFrame(predictions, geometry=geometry, crs="EPSG:4326")
+    # ✅ Convert to GeoDataFrame
+    geometry = [Point(xy) for xy in zip(predictions['longitude'], predictions['latitude'])]
+    geo_df = gpd.GeoDataFrame(predictions, geometry=geometry, crs="EPSG:4326")
 
-	# User selects which to visualize
-	selected_metric = st.selectbox("📊 Select value to visualize:", options=["Biomass", "Carbon"])
+    # User selects which to visualize
+    selected_metric = st.selectbox("📊 Select value to visualize:", options=["Biomass", "Carbon"])
 
-	# Center the map
-	center_lat = geo_df.geometry.y.mean()
-	center_lon = geo_df.geometry.x.mean()
-	m = folium.Map(location=[center_lat, center_lon], zoom_start=10)
+    # Center the map
+    center_lat = geo_df.geometry.y.mean()
+    center_lon = geo_df.geometry.x.mean()
+    m = folium.Map(location=[center_lat, center_lon], zoom_start=10)
 
-	# Create a color scale
-	min_val = geo_df[selected_metric].min()
-	max_val = geo_df[selected_metric].max()
-	colormap = folium.LinearColormap(
-    			colors=["blue", "green", "yellow", "orange", "red"],
-    			vmin=min_val, vmax=max_val,
-    			caption=f"{selected_metric} (g/m²)"
-			)
+    # Create a color scale
+    min_val = geo_df[selected_metric].min()
+    max_val = geo_df[selected_metric].max()
+    colormap = folium.LinearColormap(
+                colors=["blue", "green", "yellow", "orange", "red"],
+                vmin=min_val, vmax=max_val,
+                caption=f"{selected_metric} (g/m²)"
+            )
 
-	# Add points to map
-	for _, row in geo_df.iterrows():
-	    folium.CircleMarker(
+    # Add points to map
+    for _, row in geo_df.iterrows():
+        folium.CircleMarker(
                         location=[row.geometry.y, row.geometry.x],
                         radius=5,
                         color=colormap(row[selected_metric]),
-        		fill=True,
-        		fill_opacity=0.8,
-        		popup=folium.Popup(
-            		f"Biomass: {row['Biomass']} g/m²<br>Carbon: {row['Carbon']} g/m²", max_width=200
-        		)
-    			).add_to(m)
+                fill=True,
+                fill_opacity=0.8,
+                popup=folium.Popup(
+                    f"Biomass: {row['Biomass']} g/m²<br>Carbon: {row['Carbon']} g/m²", max_width=200
+                )
+                ).add_to(m)
 
-	# Add colormap to the map
-	colormap.add_to(m)
+    # Add colormap to the map
+    colormap.add_to(m)
 
-	# Show map in Streamlit
-	st_folium(m, width=700, height=500)
+    # Show map in Streamlit
+    st_folium(m, width=700, height=500)
 
     except Exception as e:
         st.error(f"Prediction failed: {e}")
-
 
