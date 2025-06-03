@@ -1,6 +1,12 @@
 streamlit
-pandas
 joblib
 geemap
-setuptools>=65.0.0
+geopandas
+pandas
+numpy
+matplotlib
+scikit-learn
+rasterio
 earthengine-api
+setuptools>=65.0.0
+
