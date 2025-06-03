@@ -9,6 +9,7 @@ from streamlit_folium import st_folium
 import json
 import pandas as pd
 import joblib
+from google.oauth2 import service_account
 
 # -----------------------------------------------
 # 1. Initialize Earth Engine with service account
@@ -23,12 +24,12 @@ key_data_dict = dict(st.secrets["GEE"])
 key_data = json.dumps(key_data_dict)
 
 # Authenticate with Earth Engine
-credentials = ee.ServiceAccountCredentials(
-    st.secrets["GEE"]["client_email"],  # Access the client_email from the dict
-    key_data
+credentials = service_account.Credentials.from_service_account_info(
+    dict(st.secrets["GEE"])
 )
 
 ee.Initialize(credentials)
+
 st.success("✅ Google Earth Engine authenticated!")
 
 
