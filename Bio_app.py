@@ -17,7 +17,7 @@ import joblib
 service_account_info = st.secrets["GEE"]
 credentials = ee.ServiceAccountCredentials(
     service_account_info["client_email"], 
-    key_data=json.loads(st.secrets["GEE"].to_json())
+    key_data = st.secrets["GEE"]
 )
 
 ee.Initialize(credentials)
