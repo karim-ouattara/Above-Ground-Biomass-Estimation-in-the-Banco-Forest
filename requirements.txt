@@ -9,4 +9,6 @@ scikit-learn
 rasterio
 earthengine-api
 setuptools>=65.0.0
+streamlit-folium
+
 
