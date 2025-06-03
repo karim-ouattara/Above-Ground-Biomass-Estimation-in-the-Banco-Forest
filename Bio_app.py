@@ -136,14 +136,14 @@ if geometry is not None:
         lon = c[0]
         point = Point([lon,lat])
         if polygon.contains(point):
-  	    id = "zone_"+str(k)
-  	    bio = -1
-  	    ids.append(id)
-  	    lats.append(lat)
-  	    lons.append(lon)
-  	    bios.append(bio)
-  	    k = k+1
-
+		id = "zone_"+str(k)
+  	        bio = -1
+  	        ids.append(id)
+  	        lats.append(lat)
+  	        lons.append(lon)
+  	        bios.append(bio)
+  	        k = k+1
+		
     prediction_data = pd.DataFrame({"identifiant":ids,
                       "Latitude":lats,
                       "Longitude":lons,
