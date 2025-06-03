@@ -124,32 +124,20 @@ if geometry is not None:
             if polygon.contains(point):
                 cordinate.append(p)
 
-
-
-    #ids = []
     lats = []
     lons = []
-    #bios =[]
     k =0
     for i,c in enumerate(tqdm(ivoire_cordinate,total=len(ivoire_cordinate))):
         lat = c[1]
         lon = c[0]
-        #point = Point([lon,lat])
-        #if polygon.contains(point):
-	#id = "zone_"+str(k)
-  	#bio = -1
-  	#ids.append(id)
   	lats.append(lat)
   	lons.append(lon)
-  	#bios.append(bio)
   	k = k+1
 		
-    prediction_data = pd.DataFrame({"identifiant":ids,
-                      "Latitude":lats,
-                      "Longitude":lons,
-                      "Biomass":bios})
+    prediction_data = pd.DataFrame({"Latitude":lats,
+                      "Longitude":lons})
 
-    pred_data = prediction_data[['Latitude', 'Longitude',	'Biomass']]
+    pred_data = prediction_data[['Latitude', 'Longitude']]
 
     geometry = [Point(x,y) for x,y in zip(pred_data['Longitude'], pred_data['Latitude'])]
     gdf = gpd.GeoDataFrame(pred_data,  crs = 'EPSG:4326', geometry = geometry)
@@ -158,7 +146,6 @@ if geometry is not None:
     gdf.to_crs('EPSG:4326',inplace=True)
 
     features = []
-
     for _, row in gdf.iterrows():
         geojson = row['geometry'].__geo_interface__
     	geom = ee.Geometry(geojson)
@@ -167,7 +154,6 @@ if geometry is not None:
     	features.append(feature)
 
     pred_data_fc = ee.FeatureCollection(features)
-
     st.success("🌍 AOI is ready for processing.")
 
 if pred_data_fc:
