@@ -121,9 +121,9 @@ if geometry is not None:
 	for lat in lats:
 		for lon in lons:
 			p = [lon,lat]
-    		point = Point(p)
-    		if polygon.contains(point):
-    			cordinate.append(p)
+    			point = Point(p)
+    			if polygon.contains(point):
+    				cordinate.append(p)
 
 
     ids = []
