@@ -2,4 +2,5 @@ streamlit
 pandas
 joblib
 geemap
+setuptools>=65.0.0
 earthengine-api
