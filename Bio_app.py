@@ -128,14 +128,13 @@ if geometry is not None:
     lons = []
     k =0
     for i, c in enumerate(tqdm(ivoire_cordinate, total=len(ivoire_cordinate))):
-    lat = c[1]
+        lat = c[1]
         lon = c[0]
         lats.append(lat)
         lons.append(lon)
         k = k + 1
         
-    prediction_data = pd.DataFrame({"Latitude":lats,
-                      "Longitude":lons})
+    prediction_data = pd.DataFrame({"Latitude":lats, "Longitude":lons})
 
     pred_data = prediction_data[['Latitude', 'Longitude']]
 
@@ -175,10 +174,10 @@ if pred_data_fc:
         return image.updateMask(mask).divide(10000)
 
     def maskLowQA(img):
-    qaBand = 'cs_cdf'
-    clearThreshold = 0.6
-    mask = img.select(qaBand).gte(clearThreshold)
-    return img.updateMask(mask)
+        qaBand = 'cs_cdf'
+        clearThreshold = 0.6
+        mask = img.select(qaBand).gte(clearThreshold)
+        return img.updateMask(mask)
 
     # Create a single composite image for a given period.
     start_date = '2023-01-01'
@@ -186,18 +185,18 @@ if pred_data_fc:
 
 
     def processing_s2_images(start_date, end_date, aoi):
-    image_coll = ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED").filterDate(start_date, end_date).filterBounds(aoi)\
+        image_coll = ee.ImageCollection("COPERNICUS/S2_SR_HARMONIZED").filterDate(start_date, end_date).filterBounds(aoi)\
                 .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20)) \
                     .map(maskS2clouds) \
                 .select(['B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B11', 'B12'])
 
-    proj = ee.Image(image_coll.first()).select('B4').projection()
-    csPlus = ee.ImageCollection('GOOGLE/CLOUD_SCORE_PLUS/V1/S2_HARMONIZED')
-    csPlusBands = csPlus.first().bandNames()
-    filteredS2WithCs = image_coll.linkCollection(csPlus,csPlusBands)
-    s2Processed = filteredS2WithCs.map(maskLowQA).map(lambda image: image.clip(aoi))
-    composite = s2Processed.median().setDefaultProjection(proj)
-    return composite
+        proj = ee.Image(image_coll.first()).select('B4').projection()
+        csPlus = ee.ImageCollection('GOOGLE/CLOUD_SCORE_PLUS/V1/S2_HARMONIZED')
+        csPlusBands = csPlus.first().bandNames()
+        filteredS2WithCs = image_coll.linkCollection(csPlus,csPlusBands)
+        s2Processed = filteredS2WithCs.map(maskLowQA).map(lambda image: image.clip(aoi))
+        composite = s2Processed.median().setDefaultProjection(proj)
+        return composite
 
     # Compute the median composite and clip to the boundary.
     S2_composite = processing_s2_images(start_date, end_date, aoi_fc)
@@ -421,20 +420,20 @@ if pred_data_fc:
     st.subheader("3️⃣ Predicting AGBD")
 
     try:
-    loaded_model = joblib.load("agbd_model_bench.joblib")
-    bands_used_in_training = loaded_model.feature_names_in_
+        loaded_model = joblib.load("agbd_model_bench.joblib")
+        bands_used_in_training = loaded_model.feature_names_in_
         df = df[bands_used_in_training]  # ensure columns match
         biomass = loaded_model.predict(pred_data)
-    biomass_df = pd.DataFrame(biomass, columns=["Biomass"])
-    biomass_df["Biomass"] = biomass_df["Biomass"].astype(int)
-    biomass_df['Biomass'] = biomass_df['Biomass'].apply(lambda x: max(x, 0))
+        biomass_df = pd.DataFrame(biomass, columns=["Biomass"])
+        biomass_df["Biomass"] = biomass_df["Biomass"].astype(int)
+        biomass_df['Biomass'] = biomass_df['Biomass'].apply(lambda x: max(x, 0))
 
-    # Compute Carbon
-    biomass_df["Carbon"] = (biomass_df["Biomass"] * 0.47).astype(int)
+        # Compute Carbon
+        biomass_df["Carbon"] = (biomass_df["Biomass"] * 0.47).astype(int)
         
-    # Combine with coordinates
-    coord = pred_data[['latitude', 'longitude']].reset_index(drop=True)
-    predictions = pd.concat([coord, biomass_df], axis=1)
+        # Combine with coordinates
+        coord = pred_data[['latitude', 'longitude']].reset_index(drop=True)
+        predictions = pd.concat([coord, biomass_df], axis=1)
         
         #if 'longitude' in predictions.columns and 'latitude' in predictions.columns:
         #    st.map(predictions[['latitude', 'longitude']])
@@ -442,45 +441,42 @@ if pred_data_fc:
         # ✅ Download option
         st.download_button("📥 Download predictions", predictions.to_csv(index=False), file_name="AGBD_predictions.csv")
 
-    # ✅ Convert to GeoDataFrame
-    geometry = [Point(xy) for xy in zip(predictions['longitude'], predictions['latitude'])]
-    geo_df = gpd.GeoDataFrame(predictions, geometry=geometry, crs="EPSG:4326")
+        # ✅ Convert to GeoDataFrame
+        geometry = [Point(xy) for xy in zip(predictions['longitude'], predictions['latitude'])]
+        geo_df = gpd.GeoDataFrame(predictions, geometry=geometry, crs="EPSG:4326")
 
-    # User selects which to visualize
-    selected_metric = st.selectbox("📊 Select value to visualize:", options=["Biomass", "Carbon"])
+        # User selects which to visualize
+        selected_metric = st.selectbox("📊 Select value to visualize:", options=["Biomass", "Carbon"])
 
-    # Center the map
-    center_lat = geo_df.geometry.y.mean()
-    center_lon = geo_df.geometry.x.mean()
-    m = folium.Map(location=[center_lat, center_lon], zoom_start=10)
+        # Center the map
+        center_lat = geo_df.geometry.y.mean()
+        center_lon = geo_df.geometry.x.mean()
+        m = folium.Map(location=[center_lat, center_lon], zoom_start=10)
 
-    # Create a color scale
-    min_val = geo_df[selected_metric].min()
-    max_val = geo_df[selected_metric].max()
-    colormap = folium.LinearColormap(
+        # Create a color scale
+        min_val = geo_df[selected_metric].min()
+        max_val = geo_df[selected_metric].max()
+        colormap = folium.LinearColormap(
                 colors=["blue", "green", "yellow", "orange", "red"],
                 vmin=min_val, vmax=max_val,
                 caption=f"{selected_metric} (g/m²)"
             )
 
-    # Add points to map
-    for _, row in geo_df.iterrows():
-        folium.CircleMarker(
+        # Add points to map
+        for _, row in geo_df.iterrows():
+            folium.CircleMarker(
                         location=[row.geometry.y, row.geometry.x],
                         radius=5,
                         color=colormap(row[selected_metric]),
-                fill=True,
-                fill_opacity=0.8,
-                popup=folium.Popup(
-                    f"Biomass: {row['Biomass']} g/m²<br>Carbon: {row['Carbon']} g/m²", max_width=200
-                )
-                ).add_to(m)
+                        fill=True,
+                        fill_opacity=0.8,
+                        popup=folium.Popup(f"Biomass: {row['Biomass']} g/m²<br>Carbon: {row['Carbon']} g/m²", max_width=200)).add_to(m)
 
-    # Add colormap to the map
-    colormap.add_to(m)
+        # Add colormap to the map
+        colormap.add_to(m)
 
-    # Show map in Streamlit
-    st_folium(m, width=700, height=500)
+        # Show map in Streamlit
+        st_folium(m, width=700, height=500)
 
     except Exception as e:
         st.error(f"Prediction failed: {e}")
