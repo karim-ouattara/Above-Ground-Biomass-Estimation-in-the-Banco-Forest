@@ -1,6 +1,7 @@
 import streamlit as st
 import ee
 import geemap.foliumap as geemap
+geemap.update_package
 import geopandas as gpd
 import folium
 from shapely.geometry import Point
