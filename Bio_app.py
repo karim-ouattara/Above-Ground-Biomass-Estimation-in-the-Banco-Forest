@@ -127,12 +127,12 @@ if geometry is not None:
     lats = []
     lons = []
     k =0
-    for i,c in enumerate(tqdm(ivoire_cordinate,total=len(ivoire_cordinate))):
-        lat = c[1]
-        lon = c[0]
-  	lats.append(lat)
-  	lons.append(lon)
-  	k = k+1
+    for i, c in enumerate(tqdm(ivoire_cordinate, total=len(ivoire_cordinate))):
+	    lat = c[1]
+            lon = c[0]
+            lats.append(lat)
+            lons.append(lon)
+            k = k + 1
 		
     prediction_data = pd.DataFrame({"Latitude":lats,
                       "Longitude":lons})
