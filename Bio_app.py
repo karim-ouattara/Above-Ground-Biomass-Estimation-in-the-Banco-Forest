@@ -126,23 +126,23 @@ if geometry is not None:
 
 
 
-    ids = []
+    #ids = []
     lats = []
     lons = []
-    bios =[]
+    #bios =[]
     k =0
     for i,c in enumerate(tqdm(ivoire_cordinate,total=len(ivoire_cordinate))):
         lat = c[1]
         lon = c[0]
-        point = Point([lon,lat])
-        if polygon.contains(point):
-		id = "zone_"+str(k)
-  	        bio = -1
-  	        ids.append(id)
-  	        lats.append(lat)
-  	        lons.append(lon)
-  	        bios.append(bio)
-  	        k = k+1
+        #point = Point([lon,lat])
+        #if polygon.contains(point):
+	#id = "zone_"+str(k)
+  	#bio = -1
+  	#ids.append(id)
+  	lats.append(lat)
+  	lons.append(lon)
+  	#bios.append(bio)
+  	k = k+1
 		
     prediction_data = pd.DataFrame({"identifiant":ids,
                       "Latitude":lats,
