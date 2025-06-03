@@ -16,8 +16,11 @@ import joblib
 # Convert secrets into credentials
 #service_account_info = st.secrets["GEE"]
 
-# Convert dict to JSON string
-key_data = json.dumps(st.secrets["GEE"])
+# Convert AttrDict to regular dict
+key_data_dict = dict(st.secrets["GEE"])
+
+# Then serialize it
+key_data = json.dumps(key_data_dict)
 
 # Authenticate with Earth Engine
 credentials = ee.ServiceAccountCredentials(
